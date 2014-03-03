@@ -4,10 +4,22 @@ class Dataset
 		# console.log('new Dataset', @data)
 		@length = @data.length
 	toString: () -> "Dataset (#{@length} elements)"
+	valueOf: () -> @data
+	toArray: () -> @data
 	get: (n) -> @data[n]
+	option: (name, val) ->
+		# console.log "option", name, val
+		if not val?
+			if typeof name == "object"
+				@settings = name
+			else
+				return unless @settings
+				return @settings[name]
+		if not @settings
+			@settings = {}
+		@settings[name] = val
 	clone: (newSettings) ->
 		new Dataset(@data.slice(0), newSettings or @settings)
-	asArray: () -> @data
 	map: (fun, newSettings) -> new Dataset(@data.map(fun), newSettings or @settings)
 	filter: (fun, newSettings) -> new Dataset(@data.filter(fun), newSettings or @settings)
 	sort: (arg) ->
@@ -60,7 +72,7 @@ class Dataset
 			previous: prevo
 		}
 	query: (query) ->
-		# console.log('query', query)
+		# console.log('query', query, @settings)
 		ndata = []
 		for i in [0...@length]
 			obj = @objectMatches(@data[i], query)
@@ -94,7 +106,7 @@ class Dataset
 							if @settings and @settings.filter_subarrays
 								nobj = @_cloneObject(obj)
 								npv = @getPropertyValue(prop, nobj)
-								npv.previous[npv.previousName] = ds.asArray()
+								npv.previous[npv.previousName] = ds.toArray()
 						else
 							match = false
 			break unless match
@@ -125,12 +137,67 @@ class Dataset
 					match = false unless !dval.toLowerCase or !cond.toLowerCase or dval.toLowerCase().indexOf(cond.toLowerCase()) < 0
 			break unless match
 		match
+	eq:          (prop, val) -> new DatasetQuery(@).eq(prop, val)
+	ne:          (prop, val) -> new DatasetQuery(@).ne(prop, val)
+	neq:         (prop, val) -> new DatasetQuery(@).neq(prop, val)
+	gt:          (prop, val) -> new DatasetQuery(@).gt(prop, val)
+	gte:         (prop, val) -> new DatasetQuery(@).gte(prop, val)
+	lt:          (prop, val) -> new DatasetQuery(@).lt(prop, val)
+	lte:         (prop, val) -> new DatasetQuery(@).lte(prop, val)
+	in:          (prop, val) -> new DatasetQuery(@).in(prop, val)
+	nin:         (prop, val) -> new DatasetQuery(@).nin(prop, val)
+	between:     (prop, val) -> new DatasetQuery(@).between(prop, val)
+	nbetween:    (prop, val) -> new DatasetQuery(@).nbetween(prop, val)
+	contains:    (prop, val) -> new DatasetQuery(@).contains(prop, val)
+	ncontains:   (prop, val) -> new DatasetQuery(@).ncontains(prop, val)
+	icontains:   (prop, val) -> new DatasetQuery(@).icontains(prop, val)
+	nicontains:  (prop, val) -> new DatasetQuery(@).nicontains(prop, val)
+	incontains:  (prop, val) -> new DatasetQuery(@).incontains(prop, val)
+
 
 class DatasetQuery
 	constructor: (@dataset) ->
 		@query = {}
-	query: (query) ->
-		ds = @
+		@__defineGetter__ "length", () =>
+			@apply().length
+	get: (n) -> @apply().get(n)
+	toArray: () -> @apply().toArray()
+	toString: () -> @apply().toString()
+	clone: (newSettings) -> @apply().clone(newSettings)
+	map: (fun, newSettings) -> @apply().map(fun, newSettings)
+	filter: (fun, newSettings) -> @apply().filter(fun, newSettings)
+	query: (query) -> @apply().query(query)
+	sort: (arg) -> @apply().sort(arg)
+	apply: () -> @dataset.query(@query)
+	addCondition: (prop, op, val) ->
+		@query[prop] = {} unless @query[prop]
+		if @query[prop][op]?
+			if op in ['$in', '$nin']
+				# $in and $nin operators join their values with previous constraints
+				@query[prop][op] = @query[prop][op].concat(val)
+			else
+				# other operators override previous constraints
+				@query[prop][op] = val
+		else
+			@query[prop][op] = val
+		@
+	eq:          (prop, val) -> @addCondition(prop, '$eq', val)
+	ne:          (prop, val) -> @addCondition(prop, '$ne', val)
+	neq:         (prop, val) -> @addCondition(prop, '$neq', val)
+	gt:          (prop, val) -> @addCondition(prop, '$gt', val)
+	gte:         (prop, val) -> @addCondition(prop, '$gte', val)
+	lt:          (prop, val) -> @addCondition(prop, '$lt', val)
+	lte:         (prop, val) -> @addCondition(prop, '$lte', val)
+	in:          (prop, val) -> @addCondition(prop, '$in', val)
+	nin:         (prop, val) -> @addCondition(prop, '$nin', val)
+	between:     (prop, val) -> @addCondition(prop, '$between', val)
+	nbetween:    (prop, val) -> @addCondition(prop, '$nbetween', val)
+	contains:    (prop, val) -> @addCondition(prop, '$contains', val)
+	ncontains:   (prop, val) -> @addCondition(prop, '$ncontains', val)
+	icontains:   (prop, val) -> @addCondition(prop, '$icontains', val)
+	nicontains:  (prop, val) -> @addCondition(prop, '$nicontains', val)
+	incontains:  (prop, val) -> @addCondition(prop, '$incontains', val)
+
 
 (exports ? this).Dataset = Dataset
 

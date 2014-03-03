@@ -127,22 +127,99 @@ describe('For queries that involve nested arrays', function() {
 		assert.equal(1, r.get(0).arr.length);
 		assert.equal(2, ds2.get(0).arr.length);
 	});
+	it('should filter subarrays depending on option set in runtime', function() {
+		var r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(1, r.get(0).arr.length);
+		ds2.option('filter_subarrays', false);
+		r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(2, r.get(0).arr.length);
+		ds2.option('filter_subarrays', true);
+		r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(1, r.get(0).arr.length);
+	});
+	it('should filter subarrays properly if options are set as object', function() {
+		var r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(1, r.get(0).arr.length);
+		ds2.option({ filter_subarrays: false });
+		r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(2, r.get(0).arr.length);
+		ds2.option({ filter_subarrays: true });
+		r = ds2.query({ "arr.aa": 10 });
+		assert.equal(4, r.length);
+		assert.equal(1, r.get(0).arr.length);
+	});
 });
 describe('Sort method', function() {
 	it('should sort the dataset using a native function', function() {
 		var r = ds.sort(function(a, b) { return a.obj.oa - b.obj.oa });
 		assert.equal(5, r.length);
-		assert.deepEqual([1,4,5,2,3], r.asArray().map(function(e) { return e.id }));
+		assert.deepEqual([1,4,5,2,3], r.toArray().map(function(e) { return e.id }));
 	});
 	it('should sort the dataset using SortJS', function() {
 		global.sortjs = sortjs;
 		var r = ds.sort(["-id"]);
 		delete global.sortjs;
 		assert.equal(5, r.length);
-		assert.deepEqual([5,4,3,2,1], r.asArray().map(function(e) { return e.id }));
+		assert.deepEqual([5,4,3,2,1], r.toArray().map(function(e) { return e.id }));
 	});
 });
-
+describe('DatasetQuery interface', function() {
+	it('should filter data with .eq method', function() {
+		assert.equal(1, ds.eq('id', 1).length);
+	});
+	it('should filter data with .in method', function() {
+		var r = ds.in('id', [1,3,4]);
+		assert.deepEqual([1,3,4], r.apply().toArray().map(function(e) { return e.id }));
+		assert.deepEqual([3,4], r.nin('id', [1,2]).apply().toArray().map(function(e) { return e.id }));
+	});
+	it('should chain subsequent .in methods', function() {
+		assert.deepEqual([1,3,4], ds.in('id', [1]).in('id', [3,4]).apply().toArray().map(function(e) { return e.id }));
+	});
+	it('should override subsequent .eq methods', function() {
+		assert.equal(1, ds.eq('id', 4).eq('id', 1).apply().toArray()[0].id);
+	});
+	it('should filter data with .contains method', function() {
+		assert.deepEqual([1,3,5], ds.contains('s', 'qwe').apply().toArray().map(function(e) { return e.id }));
+	});
+	it('should filter data with chained .contains and .gte methods', function() {
+		assert.deepEqual([3,5], ds.contains('s', 'qwe').gte('id', 2).apply().toArray().map(function(e) { return e.id }));
+	});
+	it('should return the same result as dataset.query method for .eq', function() {
+		assert.deepEqual(ds.query({ id: 1 }), ds.eq("id", 1).apply());
+	});
+	it('should return the same result as dataset.query method for .neq', function() {
+		assert.deepEqual(ds.query({ id: { $neq: 1 } }), ds.neq("id", 1).apply());
+	});
+	it('should return the same result as dataset.query method for .gt', function() {
+		assert.deepEqual(ds.query({ id: { $gt: 2 } }), ds.gt("id", 2).apply());
+	});
+	it('should return the same result as dataset.query method for .lt', function() {
+		assert.deepEqual(ds.query({ id: { $gt: 3 } }), ds.gt("id", 3).apply());
+	});
+	it('should return the same result as dataset.query method for .in', function() {
+		assert.deepEqual(ds.query({ id: { $in: [2,3] } }), ds.in("id", [2,3]).apply());
+	});
+	it('should return the same result as dataset.query method for .nin', function() {
+		assert.deepEqual(ds.query({ id: { $nin: [2,3] } }), ds.nin("id", [2,3]).apply());
+	});
+	it('should return the same result as dataset.query method for .between', function() {
+		assert.deepEqual(ds.query({ id: { $between: [2,4] } }), ds.between("id", [2,4]).apply());
+	});
+	it('should return the same result as dataset.query method for .nbetween', function() {
+		assert.deepEqual(ds.query({ id: { $nbetween: [2,4] } }), ds.nbetween("id", [2,4]).apply());
+	});
+	it('should return the same result as dataset.query method for .contains', function() {
+		assert.deepEqual(ds.query({ s: { $contains: "qwe" } }), ds.contains("s", "qwe").apply());
+	});
+	it('should return the same result as dataset.query method for .ncontains', function() {
+		assert.deepEqual(ds.query({ s: { $ncontains: "qwe" } }), ds.ncontains("s", "qwe").apply());
+	});
+});
 
 
 

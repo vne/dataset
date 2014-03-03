@@ -17,16 +17,37 @@
       return "Dataset (" + this.length + " elements)";
     };
 
+    Dataset.prototype.valueOf = function() {
+      return this.data;
+    };
+
+    Dataset.prototype.toArray = function() {
+      return this.data;
+    };
+
     Dataset.prototype.get = function(n) {
       return this.data[n];
     };
 
-    Dataset.prototype.clone = function(newSettings) {
-      return new Dataset(this.data.slice(0), newSettings || this.settings);
+    Dataset.prototype.option = function(name, val) {
+      if (val == null) {
+        if (typeof name === "object") {
+          this.settings = name;
+        } else {
+          if (!this.settings) {
+            return;
+          }
+          return this.settings[name];
+        }
+      }
+      if (!this.settings) {
+        this.settings = {};
+      }
+      return this.settings[name] = val;
     };
 
-    Dataset.prototype.asArray = function() {
-      return this.data;
+    Dataset.prototype.clone = function(newSettings) {
+      return new Dataset(this.data.slice(0), newSettings || this.settings);
     };
 
     Dataset.prototype.map = function(fun, newSettings) {
@@ -159,7 +180,7 @@
                 if (this.settings && this.settings.filter_subarrays) {
                   nobj = this._cloneObject(obj);
                   npv = this.getPropertyValue(prop, nobj);
-                  npv.previous[npv.previousName] = ds.asArray();
+                  npv.previous[npv.previousName] = ds.toArray();
                 }
               } else {
                 match = false;
@@ -264,6 +285,70 @@
       return match;
     };
 
+    Dataset.prototype.eq = function(prop, val) {
+      return new DatasetQuery(this).eq(prop, val);
+    };
+
+    Dataset.prototype.ne = function(prop, val) {
+      return new DatasetQuery(this).ne(prop, val);
+    };
+
+    Dataset.prototype.neq = function(prop, val) {
+      return new DatasetQuery(this).neq(prop, val);
+    };
+
+    Dataset.prototype.gt = function(prop, val) {
+      return new DatasetQuery(this).gt(prop, val);
+    };
+
+    Dataset.prototype.gte = function(prop, val) {
+      return new DatasetQuery(this).gte(prop, val);
+    };
+
+    Dataset.prototype.lt = function(prop, val) {
+      return new DatasetQuery(this).lt(prop, val);
+    };
+
+    Dataset.prototype.lte = function(prop, val) {
+      return new DatasetQuery(this).lte(prop, val);
+    };
+
+    Dataset.prototype["in"] = function(prop, val) {
+      return new DatasetQuery(this)["in"](prop, val);
+    };
+
+    Dataset.prototype.nin = function(prop, val) {
+      return new DatasetQuery(this).nin(prop, val);
+    };
+
+    Dataset.prototype.between = function(prop, val) {
+      return new DatasetQuery(this).between(prop, val);
+    };
+
+    Dataset.prototype.nbetween = function(prop, val) {
+      return new DatasetQuery(this).nbetween(prop, val);
+    };
+
+    Dataset.prototype.contains = function(prop, val) {
+      return new DatasetQuery(this).contains(prop, val);
+    };
+
+    Dataset.prototype.ncontains = function(prop, val) {
+      return new DatasetQuery(this).ncontains(prop, val);
+    };
+
+    Dataset.prototype.icontains = function(prop, val) {
+      return new DatasetQuery(this).icontains(prop, val);
+    };
+
+    Dataset.prototype.nicontains = function(prop, val) {
+      return new DatasetQuery(this).nicontains(prop, val);
+    };
+
+    Dataset.prototype.incontains = function(prop, val) {
+      return new DatasetQuery(this).incontains(prop, val);
+    };
+
     return Dataset;
 
   })();
@@ -272,11 +357,127 @@
     function DatasetQuery(dataset) {
       this.dataset = dataset;
       this.query = {};
+      this.__defineGetter__("length", (function(_this) {
+        return function() {
+          return _this.apply().length;
+        };
+      })(this));
     }
 
+    DatasetQuery.prototype.get = function(n) {
+      return this.apply().get(n);
+    };
+
+    DatasetQuery.prototype.toArray = function() {
+      return this.apply().toArray();
+    };
+
+    DatasetQuery.prototype.toString = function() {
+      return this.apply().toString();
+    };
+
+    DatasetQuery.prototype.clone = function(newSettings) {
+      return this.apply().clone(newSettings);
+    };
+
+    DatasetQuery.prototype.map = function(fun, newSettings) {
+      return this.apply().map(fun, newSettings);
+    };
+
+    DatasetQuery.prototype.filter = function(fun, newSettings) {
+      return this.apply().filter(fun, newSettings);
+    };
+
     DatasetQuery.prototype.query = function(query) {
-      var ds;
-      return ds = this;
+      return this.apply().query(query);
+    };
+
+    DatasetQuery.prototype.sort = function(arg) {
+      return this.apply().sort(arg);
+    };
+
+    DatasetQuery.prototype.apply = function() {
+      return this.dataset.query(this.query);
+    };
+
+    DatasetQuery.prototype.addCondition = function(prop, op, val) {
+      if (!this.query[prop]) {
+        this.query[prop] = {};
+      }
+      if (this.query[prop][op] != null) {
+        if (op === '$in' || op === '$nin') {
+          this.query[prop][op] = this.query[prop][op].concat(val);
+        } else {
+          this.query[prop][op] = val;
+        }
+      } else {
+        this.query[prop][op] = val;
+      }
+      return this;
+    };
+
+    DatasetQuery.prototype.eq = function(prop, val) {
+      return this.addCondition(prop, '$eq', val);
+    };
+
+    DatasetQuery.prototype.ne = function(prop, val) {
+      return this.addCondition(prop, '$ne', val);
+    };
+
+    DatasetQuery.prototype.neq = function(prop, val) {
+      return this.addCondition(prop, '$neq', val);
+    };
+
+    DatasetQuery.prototype.gt = function(prop, val) {
+      return this.addCondition(prop, '$gt', val);
+    };
+
+    DatasetQuery.prototype.gte = function(prop, val) {
+      return this.addCondition(prop, '$gte', val);
+    };
+
+    DatasetQuery.prototype.lt = function(prop, val) {
+      return this.addCondition(prop, '$lt', val);
+    };
+
+    DatasetQuery.prototype.lte = function(prop, val) {
+      return this.addCondition(prop, '$lte', val);
+    };
+
+    DatasetQuery.prototype["in"] = function(prop, val) {
+      return this.addCondition(prop, '$in', val);
+    };
+
+    DatasetQuery.prototype.nin = function(prop, val) {
+      return this.addCondition(prop, '$nin', val);
+    };
+
+    DatasetQuery.prototype.between = function(prop, val) {
+      return this.addCondition(prop, '$between', val);
+    };
+
+    DatasetQuery.prototype.nbetween = function(prop, val) {
+      return this.addCondition(prop, '$nbetween', val);
+    };
+
+    DatasetQuery.prototype.contains = function(prop, val) {
+      return this.addCondition(prop, '$contains', val);
+    };
+
+    DatasetQuery.prototype.ncontains = function(prop, val) {
+      return this.addCondition(prop, '$ncontains', val);
+    };
+
+    DatasetQuery.prototype.icontains = function(prop, val) {
+      return this.addCondition(prop, '$icontains', val);
+    };
+
+    DatasetQuery.prototype.nicontains = function(prop, val) {
+      return this.addCondition(prop, '$nicontains', val);
+    };
+
+    DatasetQuery.prototype.incontains = function(prop, val) {
+      return this.addCondition(prop, '$incontains', val);
     };
 
     return DatasetQuery;

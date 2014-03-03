@@ -5,6 +5,7 @@ module.exports = function(grunt) {
 			options: {
 				banner: '/*! <%= pkg.name %> <%= pkg.version %> // <%= grunt.template.today("dd.mm.yyyy") %> // <%= pkg.author %> // <%= pkg.homepage %> */\n',
 				sourceMap: "dataset.min.map",
+				sourceMapIn: "dataset.js.map",
 				sourceMapName: "dataset.min.map",
 				sourceMapIncludeSources: false,
 				mangle: false,
@@ -91,7 +92,7 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-coffee');
 
-	grunt.registerTask('build', ['clean', 'coffee', 'simplemocha']);
+	grunt.registerTask('build', ['clean', 'coffee', 'simplemocha', 'uglify']);
 
 	grunt.registerTask('default', ['build']);
 }
